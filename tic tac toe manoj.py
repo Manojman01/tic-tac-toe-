@@ -1,118 +1,87 @@
-#!/usr/bin/env python
-# coding: utf-8
-
-# In[17]:
-
-
-import random
-
+import math
+board=['-']*9
+AI='O'
+YOU='X'
 def print_board(board):
-    for row in board:
-        print(" ".join(row))
+    for i in range(0,9,3):
+        print(board[i] + '|' + board[i+1] + '|' + board[i+2])
     print()
-
-def check_winner(board):
-    # Check rows, columns, and diagonals for a win
-    for row in board:
-        if row[0] == row[1] == row[2] and row[0] != ' ':
-            return row[0]
-
-    for col in range(3):
-        if board[0][col] == board[1][col] == board[2][col] and board[0][col] != ' ':
-            return board[0][col]
-
-    if board[0][0] == board[1][1] == board[2][2] and board[0][0] != ' ':
-        return board[0][0]
-
-    if board[0][2] == board[1][1] == board[2][0] and board[0][2] != ' ':
-        return board[0][2]
-
-    return None
-
+def check_winner(board,player):
+    winning_combinations=[
+        [0, 1, 2],[3, 4, 5],[6, 7, 8],  
+        [0, 3, 6],[1, 4, 7],[2, 5, 8],  
+        [0, 4, 8],[2, 4, 6]]
+    for combo in winning_combinations:
+        if all(board[i]==player for i in combo):
+            return True
+    return False
 def is_board_full(board):
-    return all(all(cell != ' ' for cell in row) for row in board)
-
-def get_empty_cells(board):
-    empty_cells = []
-    for i in range(3):
-        for j in range(3):
-            if board[i][j] == ' ':
-                empty_cells.append((i, j))
-    return empty_cells
-
-def minimax(board, depth, is_maximizing):
-    winner = check_winner(board)
-    if winner is not None:
-        return 1 if winner == 'X' else -1
-
-    if is_board_full(board):
+    return all(cell!='-' for cell in board)
+def minimax_alpha_beta(board,depth,alpha,beta,maximizing_player):
+    if check_winner(board,AI):
+        return 1
+    elif check_winner(board,YOU):
+        return -1
+    elif is_board_full(board):
         return 0
-
-    if is_maximizing:
-        max_eval = float('-inf')
-        for i, j in get_empty_cells(board):
-            board[i][j] = 'X'
-            eval = minimax(board, depth + 1, False)
-            board[i][j] = ' '
-            max_eval = max(max_eval, eval)
+    if maximizing_player:
+        max_eval=-math.inf
+        for i in range(9):
+            if board[i]=='-':
+                board[i]=AI
+                eval=minimax_alpha_beta(board,depth+1,alpha,beta,False)
+                board[i]='-'
+                max_eval=max(max_eval,eval)
+                alpha=max(alpha,eval)
+                if beta<=alpha:
+                    break
         return max_eval
-
     else:
-        min_eval = float('inf')
-        for i, j in get_empty_cells(board):
-            board[i][j] = 'O'
-            eval = minimax(board, depth + 1, True)
-            board[i][j] = ' '
-            min_eval = min(min_eval, eval)
+        min_eval=math.inf
+        for i in range(9):
+            if board[i]=='-':
+                board[i]=YOU
+                eval=minimax_alpha_beta(board,depth+1,alpha,beta,True)
+                board[i]='-'
+                min_eval=min(min_eval,eval)
+                beta=min(beta,eval)
+                if beta<=alpha:
+                    break
         return min_eval
-
-def get_best_move(board):
-    best_val = float('-inf')
-    best_move = None
-
-    for i, j in get_empty_cells(board):
-        board[i][j] = 'X'
-        move_val = minimax(board, 0, False)
-        board[i][j] = ' '
-
-        if move_val > best_val:
-            best_move = (i, j)
-            best_val = move_val
-
+def find_best_move(board):
+    best_move=-1
+    best_eval=-math.inf
+    for i in range(9):
+        if board[i]=='-':
+            board[i]=AI
+            eval=minimax_alpha_beta(board,0,-math.inf,math.inf,False)
+            board[i]='-'
+            if eval > best_eval:
+                best_eval=eval
+                best_move=i
     return best_move
-
-def main():
-    board = [[' ' for _ in range(3)] for _ in range(3)]
-    current_player = 'X'
-
-    while True:
-        print_board(board)
-
-        if current_player == 'X':
-            row, col = map(int, input("Enter your move (row and column): ").split())
-            if board[row][col] == ' ':
-                board[row][col] = 'X'
-            else:
-                print("Invalid move. Try again.")
-                continue
-        else:
-            row, col = get_best_move(board)
-            board[row][col] = 'O'
-            print(f"AI plays at row {row}, column {col}")
-
-        winner = check_winner(board)
-        if winner is not None:
+while True:
+    print_board(board)
+    move=int(input("select your choice(0-8): "))
+    if board[move]=='-':
+        board[move]=YOU
+        if check_winner(board,YOU):
             print_board(board)
-            print(f"{winner} wins!")
+            print("You win!")
             break
-
-        if is_board_full(board):
+        elif is_board_full(board):
             print_board(board)
-            print("It's a tie!")
+            print("It's a draw!")
             break
-
-        current_player = 'O' if current_player == 'X' else 'X'
-
-if __name__ == "__main__":
-    main()
-
+        ai_move=find_best_move(board)
+        board[ai_move]=AI
+        if check_winner(board,AI):
+            print_board(board)
+            print("AI wins!")
+            break
+        elif is_board_full(board):
+            print_board(board)
+            print("It's a draw!")
+            break
+    else:
+        print("Cell already filled. Try again.")
